@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Response</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .button-container {
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .attend {
+            background-color: #4CAF50;
+        }
+        .decline {
+            background-color: #f44336;
+        }
+        #response-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.3);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Meeting Response</h1>
+    <p>Please confirm your attendance for the upcoming meeting on [DATE] at [TIME].</p>
+    
+    <div class="button-container">
+        <button class="button attend" onclick="submitResponse('Attending')">I Will Attend</button>
+        <button class="button decline" onclick="submitResponse('Not Attending')">I Cannot Attend</button>
+    </div>
+    
+    <div id="response-message"></div>
+    
+    <script>
+        // Extract name from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const name = urlParams.get('name') || 'Unknown';
+        
+        // Replace these with your actual Google Form details
+        const formId = "1FAIpQLSdmeZmAbf3WrblVl_eUTPyazPV49-r8MCswKgsPdxJyecEUUw"; // Your form ID
+        const nameEntryId = "1689761449"; // Entry ID for name field
+        const responseEntryId = "734717218"; // Entry ID for response field
+        
+        function submitResponse(response) {
+            // Show loading message
+            const messageDiv = document.getElementById('response-message');
+            messageDiv.innerHTML = '<div class="loading"></div> Submitting your response...';
+            messageDiv.className = '';
+            messageDiv.style.display = 'block';
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append(`entry.${nameEntryId}`, name);
+            formData.append(`entry.${responseEntryId}`, response);
+            
+            // Create the URL for form submission
+            const url = `https://docs.google.com/forms/d/e/${formId}/formResponse`;
+            
+            // Use fetch with no-cors mode to submit the form
+            // Note: This will always return an opaque response due to CORS restrictions
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            })
+            .then(() => {
+                // Since we can't actually check the response due to CORS,
+                // we assume it was successful
+                messageDiv.innerHTML = `Thank you! Your response "${response}" has been recorded.`;
+                messageDiv.className = 'success';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messageDiv.innerHTML = 'There was an error submitting your response. Please try again.';
+                messageDiv.className = 'error';
+            });
+        }
+        
+        // Alternative implementation using iframe to handle the submission
+        function submitViaIframe(response) {
+            // Show loading message
+            const messageDiv = document.getElementById('response-message');
+            messageDiv.innerHTML = '<div class="loading"></div> Submitting your response...';
+            messageDiv.className = '';
+            messageDiv.style.display = 'block';
+            
+            // Create a hidden iframe
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            
+            // Create a form inside the iframe
+            const html = `
+                <form id="hidden-form" action="https://docs.google.com/forms/d/e/${formId}/formResponse" method="post">
+                    <input type="text" name="entry.${nameEntryId}" value="${name}">
+                    <input type="text" name="entry.${responseEntryId}" value="${response}">
+                </form>
+                <script>document.getElementById('hidden-form').submit();<\/script>
+            `;
+            
+            // Write to the iframe and submit
+            iframe.contentWindow.document.open();
+            iframe.contentWindow.document.write(html);
+            iframe.contentWindow.document.close();
+            
+            // Show success message after a short delay
+            setTimeout(() => {
+                messageDiv.innerHTML = `Thank you! Your response "${response}" has been recorded.`;
+                messageDiv.className = 'success';
+                
+                // Remove the iframe after submission
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                }, 1000);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
